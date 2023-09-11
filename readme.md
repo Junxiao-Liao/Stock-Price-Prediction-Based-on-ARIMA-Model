@@ -1,135 +1,176 @@
-﻿
-基于ARIMA模型的股票价格预测问题研究
-1. # 问题描述
-时间序列预测方法是比较常用的预测方法，它有一系列完善的理论基础，随着人们对股市的追捧，不少学者也尝试将时间序列预测应用于股票的价格预测，具体的讲时间序列预测股价是将股票价格或者价格指数看作变化的时间序列，通过建立合理的时间序列模型以预测未来发展变化的规律和趋势。本文选取“长安汽车”的股票收盘价作为时间序列实证分析数据，通过建立ARIMA模型对创业板市场股票价格变动的规律和趋势进行预测。需要指出的是，股票市场的行情是千变万化的，时间序列分析法只是利用历史数据，期望从中获取有用信息来预测将来走势，而并没有考虑影响股价变动的原因，故一般只是直观分析，仅做短时间内的预测。[1]
-1. # 数据爬取
-   1. ## **爬取流程**
-      1. ### 导入所需模块
-首先用到了selenium库，优点是能够很好地模拟浏览器的使用情况，能用来简单地编写出爬虫程序且不容易被反爬；其次用到了time库，用来暂停一段时间模仿浏览器的真实行为同时等待网页加载；最后用到了re库对网页的url进行分析。[2]
-1. ### 分析url
-在网易财经中爬取股票的历史数据，观察出股票信息的存储地址为<http://quotes.money.163.com/trade/lsjysj_xxxxxx.html>的格式，其中xxxxxx为股票代码，在此地址中点击“下载数据”按钮，再点击“下载”按钮即可下载该股票的所有历史数据。
-1. ### 获取数据
-由于本次只需获取代码000625股票的历史数据，故存储地址可唯一确定。关键代码如下：
+Here is my translation of the Chinese README.md to English:
 
-1. url = 'http://quotes.money.163.com/trade/lsjysj\_000625.html#01b07'  
-1. browser.get(url)  
-1. time.sleep(2)  
-1. browser.find\_element(  
-1. `    `By.XPATH, '//\*[@id="downloadData"]').click()   # press button   
-1. time.sleep(2)  
-1. browser.find\_element(  
-1. `    `By.XPATH, '/html/body/div[2]/div[5]/div[2]/form/div[3]/a[1]').click()  
-1. time.sleep(2)  
-1. # 数据预处理
-   1. ## **导入数据**
-直接使用pandas库的read\_csv方法，代码如下
+# Stock Price Prediction Based on ARIMA Model
 
-1. df = pd.read\_csv('000625\_source.csv', sep=',')  
-   1. ## **缺失值检查**
-经检查，数据完整、无缺失值，代码如下
+## 1. Problem Description
 
-1. na\_cols = df.isnull().any(axis=0)  
-1. # 时间序列预处理
-若选取数据过少则无法充分提取历史数据中的信息，数据选取过多又会因间隔较长时的股价会对后期的预测股价影响较小造成不必要的误差，所以取最近150天的数据进行分析。为方便起见，只取每天的收盘价作为当日股价。
+Time series prediction methods are commonly used prediction techniques. They have a complete theoretical foundation. With people's enthusiasm for the stock market, many scholars have also tried to apply time series prediction to stock price prediction. Specifically, predicting stock prices with time series is to treat stock prices or price indices as time series that change over time, and to predict future trends and patterns through establishing reasonable time series models. This paper selects the closing price of Chang'an Automobile stocks as empirical analysis data for time series, and predicts the patterns and trends of stock price changes in the GEM market by establishing an ARIMA model. It should be noted that the market conditions are ever changing, and the time series analysis method only hopes to obtain useful information from the historical data to predict future trends, without considering the reasons affecting stock price changes, so it usually only provides an intuitive analysis for short-term prediction.[1] 
 
-关键代码如下
+## 2. Data Crawling
 
-1. data = data.head(150)  
-1. dataUtil = data.iloc[:, ‘日期’]  
-1. # ARIMA模型预处理
-   1. ## **时序图检验**
-首先用直观的时序图观察该时间序列是否平稳，结果如图
+### 2.1 Crawling Process
 
-显然不是平稳时间序列，需要做平稳化处理。
-1. ## **差分平稳化**
-对原始数据做一阶差分处理，相关值如表1所示，处理后，可以看出 dy 的 ADF 统计值的绝对值为 3.9615702003502933，大于显著性水平为0.05时的3.8746401679188405，故接受存在一个单位根的原假设，说明一阶差分序列是平稳的，因此d=1。
+First, the selenium library is used, whose advantage is that it can simulate the browser usage well, and can be used to simply write crawler programs without being easily detected; second, the time library is used to pause for a period of time to mimic the real behavior of the browser while waiting for the page to load; finally, the re library is used to analyze the urls of webpages.[2]
 
+### 2.2 Analyze urls 
 
+When crawling historical data of stocks on NetEase Finance, it is observed that the storage address of stock information is in the format of `http://quotes.money.163.com/trade/lsjysj_xxxxxx.html`, where xxxxxx is the stock code. Clicking the "Download Data" button on this address and then clicking the "Download" button can download all historical data of the stock.
 
-**表 1:一阶差分后adf值显著性比较**
+### 2.3 Get data
 
-|**分类**|**adf值**|
-| :-: | :-: |
-|结果|-3.9615702003502933|
-|1%|-4.454630091433345|
-|5%|-3.8746401679188405|
-|10%|-3.579316526412991|
-1. ## **自相关图和偏自相关图**
-自相关图和偏自相关图如图2、3所示
+Since only the historical data of stock 000625 needs to be obtained this time, the storage address can be uniquely determined. The key code is as follows:
 
-观察出自相关图截尾，偏自相关图拖尾，按理应使用MA模型，在之后的网格搜索中包含。
-1. ## **白噪声检验**
-白噪声检验值如表2所示
+```python
+url = 'http://quotes.money.163.com/trade/lsjysj_000625.html#01b07'
+browser.get(url)
+time.sleep(2)
+browser.find_element(
+    By.XPATH, '//*[@id="downloadData"]').click() # press button
+time.sleep(2) 
+browser.find_element(
+    By.XPATH, '/html/body/div[2]/div[5]/div[2]/form/div[3]/a[1]').click()
+time.sleep(2)
+```
 
-**表2:** 白噪声检验值
+## 3. Data Preprocessing 
 
-|**lb\_stat**|**lb\_pvalue**|
-| :-: | :-: |
-|3.485312|0.061916|
-|3.485558|0.175033|
-|5.420166|0.143492|
-|8.508024|0.074644|
-|9.200742|0.101320|
-|10.421292|0.107995|
-|13.678446|0.057205|
-|13.909369|0.084158|
-lag=1，4，7时，p值接近5%，依然当作通过检验处理。认为数据为非白噪声序列，存在相关性，有一定规律可循。
-1. # 模型的建立与预测
-   1. ## **划分训练集和测试集**
-差分后还剩余149个数据，将前144个作为训练集，最后5个作为测试集。
-1. ## **网格搜索最优参数**
-对于库函数ARIMA(train, order(p, d, q))，使用网格搜索的方式寻找order的最佳匹配值，定义了函数evaluate\_arima\_model和evaluate\_models，关键代码如下
+### 3.1 Import Data
 
-1. **def** evaluate\_arima\_model(X, arima\_order):  
-1. `    `size = len(X) - 5  
-1. `    `train\_tmp, test\_tmp = X[:size], X[size:]  
-1. `    `tmp\_model = ARIMA(train\_tmp, order=arima\_order).fit()  
-1. `    `tmp\_pred = tmp\_model.forecast(5)  
-1. `    `error = mean\_squared\_error(tmp\_pred, test\_tmp)  
-1. `    `**return** error  
+Directly use the read_csv method of the pandas library, the code is as follows:
 
-1. **def** evaluate\_models(dataset, p\_values, d\_values, q\_values):  
-1. `    `best\_score, best\_cfg = float("inf"), None  
-1. `    `**for** p **in** p\_values:  
-1. `        `**for** d **in** d\_values:  
-1. `            `**for** q **in** q\_values:  
-1. `                `order = (p,d,q)  
-1. `                `**try**:  
-1. `                    `mse = evaluate\_arima\_model(dataset, order)  
-1. `                    `**if** mse < best\_score:  
-1. `                        `best\_score, best\_cfg = mse, order  
-1. `                    `**print**('ARIMA%s MSE=%.3f' % (order,mse))  
-1. `                `**except**:  
-1. `                    `**continue**
+```python
+df = pd.read_csv('000625_source.csv', sep=',')
+```
 
-通过搜索得到最佳参数为ARIMA(8, 1, 6) ，其MSE最小，MSE=0.102
-1. ## **运用模型进行预测**
-预测结果如表3所示
+### 3.2 Missing Value Check
 
-**表3:** 模型预测结果
+After checking, the data is complete without missing values. The code is as follows:
 
-|**预测值**|**真实值**|
-| :-: | :-: |
-|0.117384|0.45|
-|-0.259985|0.54|
-|-0.035829|1.76|
-|0.093502|-0.17|
-|-0.139943|-1.36|
-将预测值与真实值画在同一坐标系中，如图
+```python
+na_cols = df.isnull().any(axis=0)
+```
 
+## 4. Time Series Preprocessing
 
+If too little data is selected, it will be impossible to fully extract information from the historical data. Selecting too much data will cause unnecessary errors because stock prices with longer intervals will have less impact on predicting future stock prices. Therefore, the most recent 150 days of data are used for analysis. For convenience, only the closing price of each day is taken as the stock price of the day.
 
-1. # 结果分析
-   1. ## **由图4直观分析**
-结果与真实值在增减趋势上几乎相同，但是在数值大小方面还不够准确。
-1. ## **残差分析**
-如图所示，残差分布有较好的正态性，模型拟合较好。
+The key code is as follows:
 
+```python
+data = data.head(150)
+dataUtil = data.iloc[:, ‘Date’]
+```
 
-1. # 参考文献
-1. 吴玉霞 & 温欣.(2016).基于ARIMA模型的短期股票价格预测. 统计与决策(23),83-86. doi:10.13546/j.cnki.tjyjc.2016.23.051.
-1. 知乎用户：黑木鸟.如何用爬虫抓取股市数据并生成分析报表[EB/OL]. https://www.finlab.tw/%E7%94%A8%E7%88%AC%E8%9F%B2%E7%88%AC%E5%85%A8%E4%B8%96%E7%95%8C%E8%82%A1%E5%83%B9/, 2017–02–22/2018–05–31.
+## 5. ARIMA Model Preprocessing
 
-**附录**
-7
+### 5.1 Time Series Chart Inspection
 
+First, use the intuitive time series chart to observe whether the time series is stationary. The result is as shown in the figure below:
+
+Obviously it is not a stationary time series and smoothing processing is needed. 
+
+### 5.2 Differencing for Stationarity
+
+Perform first order differencing on the original data. The related values are shown in Table 1. After processing, it can be seen that the absolute value of the ADF statistic dy is 3.9615702003502933, greater than 3.8746401679188405, which is the significance level when the significance level is 0.05. Therefore, the hypothesis that there is a single root is accepted, indicating that the first order differenced sequence is stationary, so d=1.
+
+**Table 1: ADF value significance comparison after first order differencing**
+
+| Category | adf value |
+|-|-|  
+| Result | -3.9615702003502933 |
+| 1% | -4.454630091433345 |
+| 5% | -3.8746401679188405 |
+| 10% | -3.579316526412991 |
+
+### 5.3 Autocorrelation and Partial Autocorrelation Plots  
+
+The autocorrelation and partial autocorrelation plots are shown in figures 2 and 3:
+
+It can be observed that the autocorrelation graph has a truncated tail and the partial autocorrelation graph has a trailing tail. According to theory, the MA model should be used, which is included in the subsequent grid search.
+
+### 5.4 White Noise Test
+
+The white noise test values are shown in Table 2:
+
+**Table 2:** White noise test values
+
+| lb_stat | lb_pvalue |
+|-|-|
+| 3.485312 | 0.061916 |
+| 3.485558 | 0.175033 |
+| 5.420166 | 0.143492 |
+| 8.508024 | 0.074644 |
+| 9.200742 | 0.101320 |
+| 10.421292 | 0.107995 |
+| 13.678446 | 0.057205 |
+| 13.909369 | 0.084158 |
+
+When lag=1,4,7, the p-value is close to 5%, and it is still treated as a pass. It is considered that the data is a non-white noise sequence with correlation and certain rules to follow.
+
+## 6. Model Building and Forecasting
+
+### 6.1 Splitting Training and Test Sets
+
+After differencing, there are still 149 data remaining. The first 144 are used as the training set and the last 5 as the test set.
+
+### 6.2 Grid Search for Optimal Parameters 
+
+For the ARIMA library function ARIMA(train, order(p, d, q)), grid search is used to find the best matching order value. The functions evaluate_arima_model and evaluate_models are defined, with key code as follows:
+
+```python
+def evaluate_arima_model(X, arima_order):
+    size = len(X) - 5
+    train_tmp, test_tmp = X[:size], X[size:]
+    tmp_model = ARIMA(train_tmp, order=arima_order).fit()
+    tmp_pred = tmp_model.forecast(5)
+    error = mean_squared_error(tmp_pred, test_tmp)
+    return error
+
+def evaluate_models(dataset, p_values, d_values, q_values):
+    best_score, best_cfg = float("inf"), None
+    for p in p_values:
+        for d in d_values:
+            for q in q_values:
+                order = (p,d,q)
+                try:
+                    mse = evaluate_arima_model(dataset, order)
+                    if mse < best_score:
+                        best_score, best_cfg = mse, order
+                    print('ARIMA%s MSE=%.3f' % (order,mse))
+                except:
+                    continue
+```
+
+Through the search, the best parameters are found to be ARIMA(8, 1, 6), with the minimum MSE of 0.102.
+
+### 6.3 Model Forecasting
+
+The forecast results are shown in Table 3:
+
+**Table 3:** Model forecast results
+
+| Forecast Value | Actual Value |
+|-|-|
+| 0.117384 | 0.45 |
+| -0.259985 | 0.54 |  
+| -0.035829 | 1.76 |
+| 0.093502 | -0.17 |
+| -0.139943 | -1.36 |
+
+The predicted values and actual values are plotted on the same coordinate system, as shown in the figure below:
+
+## 7. Result Analysis 
+
+### 7.1 Intuitive Analysis from Figure 4
+
+The results are almost the same as the actual values in terms of increasing and decreasing trends, but the numerical values are not yet accurate enough.
+
+### 7.2 Residual Analysis
+
+As shown in the figure, the residual distribution has good normality and the model fitting is relatively good.
+
+## References
+
+[1] Wu Yuxia & Wen Xin. (2016). Short-term stock price prediction based on ARIMA model. Statistics and Decision (23), 83-86. doi:10.13546/j.cnki.tjyjc.2016.23.051. 
+
+[2] Zhihu user: Heimu Bird. How to use crawlers to grab stock market data and generate analysis reports [EB/OL]. https://www.finlab.tw/%E7%94%A8%E7%88%AC%E8%9F%B2%E7%88%AC%E5%85%A8%E4%B8%96%E7%95%8C%E8%82%A1%E5%83%B9/, 2017–02–22/2018–05–31.
