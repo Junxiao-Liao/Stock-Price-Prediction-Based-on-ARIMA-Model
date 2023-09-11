@@ -1,5 +1,3 @@
-Here is my translation of the Chinese README.md to English:
-
 # Stock Price Prediction Based on ARIMA Model
 
 ## 1. Problem Description
